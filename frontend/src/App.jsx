@@ -6,6 +6,8 @@ import HomePage from './components/HomePage'
 import Navbar from './components/Navbar'
 import useSaveUser from './hooks/useSaveUser'
 import './App.css'
+import { Route, Routes } from 'react-router-dom'
+import MeetingPage from './components/MeetingPage'
 
 function App() {
   const [showRegister, setShowRegister] = useState(false)
@@ -15,15 +17,26 @@ function App() {
   if (isLoading) return <p className="auth-status">Loading...</p>
   if (error) return <p className="auth-status auth-status-error">Authentication failed: {error.message}</p>
   if (isAuthenticated) return (
-    <>
-      <Navbar />
-      {isSaving ? <p role="status">Preparing your account…</p> :
-        profileError ? <div className="auth-card" role="alert">
-          <p>{profileError}</p>
-          <button className="auth-primary" onClick={retry}>Try again</button>
-        </div> : <HomePage />}
-    </>
-  )
+  <>
+    <Navbar />
+
+    {isSaving ? (
+      <p role="status">Preparing your account…</p>
+    ) : profileError ? (
+      <div className="auth-card" role="alert">
+        <p>{profileError}</p>
+        <button className="auth-primary" onClick={retry}>
+          Try again
+        </button>
+      </div>
+    ) : (
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/meeting/:roomId" element={<MeetingPage />} />
+      </Routes>
+    )}
+  </>
+)
 
   return (
     <main className="auth-shell">

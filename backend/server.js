@@ -8,9 +8,9 @@ const app=express()
 app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
-
+import { socketConnection } from "./controllers/socketManager.js"
 const server=createServer(app)
-const io=new Server(server)
+const io = socketConnection(server)
 
 
 import dns from "node:dns";

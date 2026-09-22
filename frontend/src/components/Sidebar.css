@@ -1,0 +1,25 @@
+.dashboard {
+  display: flex;
+  align-items: stretch;
+  min-height: 70vh;
+}
+
+.sidebar {
+  box-sizing: border-box;
+  flex: 0 0 220px;
+  padding: 24px 20px;
+  border-right: 1px solid var(--border);
+  text-align: left;
+}
+
+.dashboard > main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .sidebar {
+    flex-basis: 130px;
+    padding: 20px 12px;
+  }
+}

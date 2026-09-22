@@ -7,18 +7,30 @@ export const socketConnection=(server)=>{
     // acts like a event listner whenever the user creates a socket this runs
     const io=new Server(server,{
         cors:{
-            origin:["*"],
-            methods:["GET","PUT"],
-            allowedHeaders:["*"],
+            origin:["http://localhost:5173"],
+            methods:["GET","POST"],
             credentials:true
             
         }
     })
         io.on("connection",(socket)=>{
+            socket.on("create-room",(path)=>{
+                if(connections[path]!==undefined){
+                       socket.emit("room-error", "Room already exists")
+                    return 
+                }
+                connections[path]=[]
+                connections[path].push(socket.id)
+                 timeOnline[socket.id]=new Date()
+                socket.emit("room-created", path)
+                socket.emit("new-user", socket.id, connections[path])
+
+            })
 
             socket.on("join-call",(path)=>{
                 if(connections[path]==undefined){
-                    connections[path]=[]
+                  socket.emit("room-error","room doesnt found or meeting has ended")
+                  return
                 }
                 connections[path].push(socket.id)
                 timeOnline[socket.id]=new Date()
