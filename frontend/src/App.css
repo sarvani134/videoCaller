@@ -1,3 +1,384 @@
+/* Meeting room: existing room details, video feeds, and three call controls. */
+#root:has(> .meeting) {
+  background: radial-gradient(ellipse at top, #e8f1ff, #f6f9ff 65%);
+  color-scheme: light;
+}
+
+#root > .meeting {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  width: calc(100% - 40px);
+  max-width: 1440px;
+  margin: 24px auto;
+  padding: 24px 20px 0;
+  overflow: hidden;
+  border: 1px solid #e4edf9;
+  border-radius: 22px;
+  background: #ffffff;
+  color: #52617a;
+  text-align: left;
+  box-shadow: 0 16px 60px #41689d12, 0 2px 8px #41689d08;
+}
+
+#root > .meeting > h1 {
+  grid-column: 1 / -1;
+  margin: 0 0 8px;
+  color: #153565;
+  font-size: clamp(23px, 3vw, 30px);
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: -0.8px;
+}
+
+#root > .meeting > p {
+  grid-column: span 2;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid #e6eefb;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f4f8ff, #edf4ff);
+  color: #38537a;
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#root > .meeting > p:first-child {
+  grid-column: 1 / -1;
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #a51e36;
+}
+
+/* Guests have two detail cards; hosts also have the room ID card. */
+#root > .meeting:not(:has(> .meeting-room-id)) > p:not(:first-child) {
+  grid-column: span 3;
+}
+
+#root > .meeting > h2 {
+  order: 1;
+  grid-column: span 3;
+  margin: 10px 0 0;
+  padding-left: 3px;
+  color: #60718b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.15px;
+}
+
+#root > .meeting > .meeting-video {
+  order: 2;
+  grid-column: span 3;
+  display: block;
+  /* The JSX has an inline 400px width. Let the panel fill its grid area. */
+  width: 100% !important;
+  min-width: 0;
+  height: clamp(240px, 52svh, 680px);
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px #172b4614, 0 5px 18px #263e5d12;
+}
+
+#root > .meeting.meeting-solo > h2,
+#root > .meeting.meeting-solo > .meeting-video {
+  grid-column: 1 / -1;
+}
+
+#root > .meeting > [hidden] {
+  display: none !important;
+}
+
+#root > .meeting > .meeting-controls {
+  order: 3;
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  gap: clamp(12px, 3vw, 32px);
+  margin: 8px -20px 0;
+  padding: 14px 16px 18px;
+  border-top: 1px solid #edf2fa;
+  background: linear-gradient(180deg, #f8fbff, #fff);
+}
+
+#root > .meeting > .meeting-controls button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  width: 104px;
+  min-height: 84px;
+  padding: 22px 4px 4px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: #58677e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.4;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root > .meeting > .meeting-controls button::before {
+  content: "";
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  background: #fff;
+  mask: var(--meeting-icon) center / contain no-repeat;
+}
+
+.meeting-controls .meeting-control-slash {
+  position: absolute;
+  z-index: 2;
+  top: 32px;
+  left: calc(50% - 17px);
+  width: 34px;
+  height: 3px;
+  border-radius: 2px;
+  background: #ff4054;
+  box-shadow: 0 0 0 1px #2b3340;
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+
+#root > .meeting > .meeting-controls button::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: calc(50% - 26px);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #4c5666, #2b3340);
+  box-shadow: 0 4px 10px #23334d20, inset 0 1px 1px #ffffff30;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+#root > .meeting > .meeting-controls button:first-child {
+  --meeting-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'%3E%3Crect x='9' y='2' width='6' height='13' rx='3'/%3E%3Cpath d='M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8'/%3E%3C/svg%3E");
+}
+#root > .meeting > .meeting-controls button:nth-child(2) {
+  --meeting-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Crect x='2' y='6' width='13' height='12' rx='3'/%3E%3Cpath d='m15 10 7-4v12l-7-4z'/%3E%3C/svg%3E");
+}
+#root > .meeting > .meeting-controls button:last-child {
+  --meeting-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M2 12c5-6 15-6 20 0v5l-6-1v-4a12 12 0 0 0-8 0v4l-6 1z'/%3E%3C/svg%3E");
+  border-color: #c92c43;
+  background: #c92c43;
+  color: #fff;
+}
+
+#root > .meeting > .meeting-controls button:last-child {
+  background: transparent;
+  color: #58677e;
+}
+
+#root > .meeting > .meeting-controls button:last-child::after {
+  background: linear-gradient(145deg, #ff4054, #e71e36);
+  box-shadow: 0 4px 12px #ef30452b, inset 0 1px 1px #ffffff40;
+}
+
+#root > .meeting > .meeting-controls button:hover::after {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 16px #23334d30;
+}
+
+#root > .meeting > .meeting-controls button:active::after {
+  transform: scale(0.95);
+}
+
+#root > .meeting > .meeting-controls button:focus-visible {
+  outline: 3px solid #82afff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  #root > .meeting {
+    width: calc(100% - 20px);
+    margin: 12px auto;
+    padding: 18px 12px 0;
+    gap: 10px;
+    border-radius: 16px;
+  }
+
+  #root > .meeting > p {
+    grid-column: 1 / -1;
+    padding: 10px 12px;
+  }
+
+  #root > .meeting:not(:has(> .meeting-room-id)) > p:not(:first-child) {
+    grid-column: 1 / -1;
+  }
+
+  #root > .meeting > h2,
+  #root > .meeting > .meeting-video {
+    order: 0;
+    grid-column: 1 / -1;
+  }
+
+  #root > .meeting.meeting-split > .meeting-video {
+    height: clamp(180px, 30svh, 320px);
+  }
+
+  #root > .meeting > .meeting-controls {
+    margin-inline: -12px;
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root > .meeting > .meeting-controls button::after { transition: none; }
+}
+#root > .meeting > .meeting-video {
+  position: relative;
+  overflow: hidden;
+  background: #91b6d8;
+}
+
+.meeting-media-status {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.meeting-media-status > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: #182334e8;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.meeting-media-status > .media-disabled {
+  color: #ffbdc5;
+}
+
+.meeting-media-status svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.meeting-video > video {
+  display: block;
+  width: 100% !important;
+  height: 100%;
+  object-fit: contain;
+}
+
+.meeting-video > .meeting-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #91b6d8;
+}
+
+#root > .meeting > .meeting-room-id {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.meeting-room-id > span:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.meeting-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #d9e6fc;
+  border-radius: 10px;
+  background: #fff;
+  color: #2869dc;
+  cursor: pointer;
+}
+
+.meeting-copy:hover { background: #e3eeff; }
+.meeting-copy:focus-visible { outline: 3px solid #82afff; outline-offset: 2px; }
+.meeting-toast-region {
+  position: fixed;
+  top: max(24px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 32px));
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.meeting-toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 14px 20px 18px;
+  overflow: hidden;
+  border: 1px solid #c9e8df;
+  border-radius: 18px;
+  background: linear-gradient(115deg, #effcf5, #fff 70%);
+  box-shadow: 0 12px 40px #143c3426, 0 2px 6px #143c3410;
+  text-align: left;
+  pointer-events: auto;
+  animation: meeting-toast-enter 280ms ease-out both;
+}
+
+.meeting-toast-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #dcf7e9;
+  font-size: 27px;
+}
+
+.meeting-toast-message { flex: 1; min-width: 0; }
+.meeting-toast-message strong { display: block; color: #174f40; font-size: 14px; line-height: 1.5; }
+.meeting-toast-message > span { display: block; margin-top: 3px; color: #586f68; font-size: 12px; line-height: 1.5; }
+.meeting-toast-close { flex: 0 0 32px; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #60766e; font-size: 24px; cursor: pointer; }
+.meeting-toast-close:hover { background: #dff2e9; }
+.meeting-toast-close:focus-visible { outline: 2px solid #218461; outline-offset: 2px; }
+.meeting-toast-progress { position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #30b981, #74d9bd); transform-origin: left; animation: meeting-toast-countdown 4s linear forwards; }
+.meeting-toast-error { background: #fff7f5; border-color: #f0cfc7; }
+.meeting-toast-error .meeting-toast-icon { background: #ffe5dd; color: #a84028; }
+.meeting-toast-error strong { color: #913c2b; }
+
+@keyframes meeting-toast-enter {
+  from { opacity: 0; transform: translateY(-14px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes meeting-toast-countdown { to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .meeting-toast { animation: none; }
+  .meeting-toast-progress { display: none; }
+}
+
 /* Authentication screens. */
 #root:has(> .auth-card),
 #root:has(> .auth-status) {
@@ -490,7 +871,7 @@
   outline-offset: 4px;
 }
 
-#root > .app-navbar + div:not(:has(.dashboard)):not(.auth-card) {
+#root > .app-navbar + div:not(:has(.dashboard)):not(.auth-card):not(.meeting) {
   box-sizing: border-box;
   width: calc(100% - 48px);
   max-width: 760px;
@@ -503,14 +884,14 @@
   box-shadow: 0 8px 32px #20385c06;
 }
 
-#root > .app-navbar + div:not(:has(.dashboard)) > h1 {
+#root > .app-navbar + div:not(:has(.dashboard)):not(.meeting) > h1 {
   margin: 0 0 28px;
   font-size: clamp(26px, 4vw, 34px);
   font-weight: 650;
   letter-spacing: -1px;
 }
 
-#root > .app-navbar + div:not(:has(.dashboard)) > p {
+#root > .app-navbar + div:not(:has(.dashboard)):not(.meeting) > p {
   margin-top: 12px;
   padding: 16px 18px;
   border: 1px solid #e8edf5;

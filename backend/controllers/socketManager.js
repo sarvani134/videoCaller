@@ -35,6 +35,13 @@ export const socketConnection=(server)=>{
                 connections[path].push(socket.id)
                 timeOnline[socket.id]=new Date()
 
+                for (const participantId of connections[path]) {
+                    if (participantId !== socket.id) {
+                        socket.emit("video-state", participantId, io.sockets.sockets.get(participantId)?.data.videoOff === true)
+                        socket.emit("mute-state", participantId, io.sockets.sockets.get(participantId)?.data.muted === true)
+                    }
+                }
+
                 for(let i=0;i<connections[path].length;i++){
                     io.to(connections[path][i]).emit("new-user",socket.id,connections[path])
                 }
@@ -48,6 +55,30 @@ export const socketConnection=(server)=>{
                 }
 
 
+            })
+
+            socket.on("video-state", (videoOff) => {
+                if (typeof videoOff !== "boolean") return
+                const room = Object.values(connections).find(ids => ids.includes(socket.id))
+                if (!room) return
+                socket.data.videoOff = videoOff
+                for (const participantId of room) {
+                    if (participantId !== socket.id) {
+                        io.to(participantId).emit("video-state", socket.id, videoOff)
+                    }
+                }
+            })
+
+            socket.on("mute-state", (muted) => {
+                if (typeof muted !== "boolean") return
+                const room = Object.values(connections).find(ids => ids.includes(socket.id))
+                if (!room) return
+                socket.data.muted = muted
+                for (const participantId of room) {
+                    if (participantId !== socket.id) {
+                        io.to(participantId).emit("mute-state", socket.id, muted)
+                    }
+                }
             })
 
             socket.on("signal",(toId,message)=>{

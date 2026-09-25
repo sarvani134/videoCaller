@@ -12,11 +12,11 @@ import MeetingPage from './components/MeetingPage'
 function App() {
   const [showRegister, setShowRegister] = useState(false)
   const { isAuthenticated, isLoading, error } = useAuth0()
-  const { profileError, isSaving, retry } = useSaveUser()
+  const { profileError, isSaving, retry, requiresSignIn, isRedirecting } = useSaveUser()
 
   if (isLoading) return <p className="auth-status">Loading...</p>
   if (error) return <p className="auth-status auth-status-error">Authentication failed: {error.message}</p>
-  if (isAuthenticated) return (
+  if (isAuthenticated && !requiresSignIn) return (
   <>
     <Navbar />
 
@@ -46,9 +46,14 @@ function App() {
       <div className="auth-layout">
         <section className="auth-story" aria-labelledby="auth-story-title">
           <h1 id="auth-story-title">Closer, even<br />from here.</h1>
-        <section className="auth-card" aria-label={showRegister ? 'Create your VibeMeet account' : 'Sign in to VibeMeet'}>
-          {showRegister ? <RegisterPage /> : <LoginPage />}
+        <section className="auth-card" aria-label={showRegister && !requiresSignIn ? 'Create your VibeMeet account' : 'Sign in to VibeMeet'}>
+          {showRegister && !requiresSignIn ? <RegisterPage /> : (
+            <LoginPage onSignIn={requiresSignIn ? retry : undefined} isSigningIn={isRedirecting} />
+          )}
 
+          {requiresSignIn && profileError && <p role="alert">{profileError}</p>}
+
+          {!requiresSignIn && <>
           <div className="auth-divider" aria-hidden="true" />
           <p className="auth-switch-label">{showRegister ? 'Already have an account?' : 'First time here?'}</p>
           <button className="auth-switch" onClick={() => setShowRegister(!showRegister)}>
@@ -56,6 +61,7 @@ function App() {
               ? 'Sign in to your account'
               : 'Create an account'} <span aria-hidden="true">↗</span>
           </button>
+          </>}
           <p className="auth-security"><span aria-hidden="true">◇</span> Secure sign-in, powered by Auth0</p>
         </section>
         </section>

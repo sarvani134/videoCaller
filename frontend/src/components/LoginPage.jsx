@@ -1,13 +1,13 @@
 import { useAuth0 } from '@auth0/auth0-react'
 
-function LoginPage() {
+function LoginPage({ onSignIn, isSigningIn = false }) {
     const {loginWithRedirect}=useAuth0()
   return (
     <div className="auth-panel">
         <span className="auth-kicker">YOUR VIBEMEET ACCOUNT</span>
         <h2>Welcome back.</h2>
         <p>Sign in to catch up with your people. They're only a call away.</p>
-        <button className="auth-primary" onClick={()=>loginWithRedirect({ authorizationParams: { prompt: 'login' } })}>Sign in to VibeMeet <span aria-hidden="true">→</span></button>
+        <button className="auth-primary" disabled={isSigningIn} onClick={onSignIn || (()=>loginWithRedirect({ authorizationParams: { prompt: 'login' } }))}>Sign in to VibeMeet <span aria-hidden="true">→</span></button>
       
     </div>
   )
