@@ -197,6 +197,19 @@
   transform: scale(0.95);
 }
 
+#root > .meeting > .meeting-controls .meeting-screen-share {
+  --meeting-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='3' width='20' height='14' rx='2'/%3E%3Cpath d='M8 21h8M12 17v4M12 13V7m-3 3 3-3 3 3'/%3E%3C/svg%3E");
+}
+
+#root > .meeting > .meeting-controls .meeting-screen-share[aria-pressed="true"] {
+  color: #137454;
+}
+
+#root > .meeting > .meeting-controls .meeting-screen-share[aria-pressed="true"]::after {
+  background: linear-gradient(145deg, #24b883, #12805c);
+  box-shadow: 0 4px 12px #12805c30;
+}
+
 #root > .meeting > .meeting-controls button:focus-visible {
   outline: 3px solid #82afff;
   outline-offset: 2px;
@@ -258,6 +271,7 @@
 }
 
 .meeting-media-status > span {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -271,6 +285,18 @@
 
 .meeting-media-status > .media-disabled {
   color: #ffbdc5;
+}
+
+.meeting-media-status > .media-disabled::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: #ff6677;
+  transform: translateY(-50%) rotate(-45deg);
 }
 
 .meeting-media-status svg {

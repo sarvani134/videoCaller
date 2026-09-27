@@ -141,8 +141,28 @@ const startStream=async()=>{
 
         }
      }
-    
 
+     Object.entries(connections)
+     .reduce(([room,found],[roomKey,roomVal])=>{
+
+        if(found==false && roomVal.includes(socket.id)){
+            return [roomKey,found]
+        }
+        return [room,found]
+
+     },["",false])
+    
+            const startScreenShare=async()=>{
+
+                const shareStream=await localStreamRef.mediaDevices.getUserMedia({
+                    video:true
+                })
+
+                const shareTrack=shareStream.getVideoTracks()[0]
+
+                const videoSender=localStreamRef
+
+            }
 
 
    

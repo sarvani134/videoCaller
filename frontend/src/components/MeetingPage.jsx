@@ -15,7 +15,6 @@ function MediaStatus({ muted, videoOff }) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
           <rect x="9" y="2" width="6" height="13" rx="3" />
           <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" />
-          {muted && <path d="M3 21 21 3" stroke="#ff6677" strokeWidth="2.8" />}
         </svg>
         {muted ? "Muted" : "Mic on"}
       </span>
@@ -23,7 +22,6 @@ function MediaStatus({ muted, videoOff }) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
           <rect x="2" y="6" width="13" height="12" rx="3" />
           <path d="m15 10 7-4v12l-7-4z" />
-          {videoOff && <path d="M3 21 21 3" stroke="#ff6677" strokeWidth="2.8" />}
         </svg>
         {videoOff ? "Camera off" : "Camera on"}
       </span>
@@ -52,6 +50,77 @@ function MeetingPage() {
   const [localVideoReady, setLocalVideoReady] = useState(false)
   const [copyStatus, setCopyStatus] = useState(null)
   const copySequence = useRef(0)
+  const [isScreenSharing,setIsScreenSharing]=useState(false)
+  const screenStreamRef=useRef(null)
+  const screenSharePendingRef = useRef(false)
+
+  const stopScreenShare = async () => {
+    const screenStream = screenStreamRef.current
+    if (!screenStream) return
+
+    screenStreamRef.current = null
+    screenStream.getTracks().forEach((track) => {
+      track.onended = null
+      track.stop()
+    })
+    setIsScreenSharing(false)
+
+    const localStream = localStreamRef.current
+    const cameraTrack = localStream?.getVideoTracks()[0]
+    const cameraOff = !cameraTrack || cameraTrack.readyState === "ended" || !cameraTrack.enabled
+    socketRef.current?.emit("video-state", cameraOff)
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = localStream
+    }
+
+    try {
+      const sender = peerConnectionRef.current?.getSenders()
+        .find((sender) => sender.track?.kind === "video")
+      if (sender && cameraTrack) await sender.replaceTrack(cameraTrack)
+    } catch (error) {
+      setMediaError("Screen sharing stopped, but the camera could not be restored.")
+      console.error("Camera restore failed:", error)
+    }
+  }
+
+  const startScreenShare = async () => {
+    const localStream = localStreamRef.current
+    if (!localStream || screenStreamRef.current || screenSharePendingRef.current) return
+    screenSharePendingRef.current = true
+    let screenStream
+    try {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true })
+      // The user may leave the meeting while the browser picker is open.
+      if (localStreamRef.current !== localStream) {
+        screenStream.getTracks().forEach((track) => track.stop())
+        return
+      }
+      const screenTrack = screenStream.getVideoTracks()[0]
+      const sender = peerConnectionRef.current?.getSenders()
+        .find((sender) => sender.track?.kind === "video")
+      if (sender) await sender.replaceTrack(screenTrack)
+
+      if (localStreamRef.current !== localStream) {
+        screenStream.getTracks().forEach((track) => track.stop())
+        return
+      }
+      screenStreamRef.current = screenStream
+      screenTrack.onended = stopScreenShare
+      if (localVideoRef.current) localVideoRef.current.srcObject = screenStream
+      setIsScreenSharing(true)
+      // video-state describes whether the outgoing video should be hidden.
+      socketRef.current?.emit("video-state", false)
+      setMediaError("")
+    } catch (error) {
+      screenStream?.getTracks().forEach((track) => track.stop())
+      if (error.name !== "NotAllowedError") {
+        setMediaError("Unable to share your screen. Please try again.")
+      }
+      console.error("Screen sharing failed:", error)
+    } finally {
+      screenSharePendingRef.current = false
+    }
+  }
 
   useEffect(() => {
     if (!copyStatus || copyStatus.error) return
@@ -109,7 +178,7 @@ function MeetingPage() {
     })
 
     setIsVideoOff(true)
-    socketRef.current?.emit("video-state", true)
+    socketRef.current?.emit("video-state", !screenStreamRef.current)
     return
   }
 
@@ -134,7 +203,7 @@ function MeetingPage() {
       ?.getSenders()
       .find((sender) => sender.track?.kind === "video")
 
-    if (videoSender) {
+    if (videoSender && !screenStreamRef.current) {
       await videoSender.replaceTrack(newTrack)
     }
 
@@ -144,7 +213,7 @@ function MeetingPage() {
     })
     stream.addTrack(newTrack)
 
-    if (localVideoRef.current) {
+    if (localVideoRef.current && !screenStreamRef.current) {
       localVideoRef.current.srcObject = stream
     }
 
@@ -159,6 +228,11 @@ function MeetingPage() {
 }
 
     const endCall=()=>{
+     screenStreamRef.current?.getTracks().forEach((track) => {
+       track.onended = null
+       track.stop()
+     })
+     screenStreamRef.current = null
      if(localStreamRef.current)
       { localStreamRef.current.getTracks()
       .forEach((track)=>{
@@ -258,7 +332,7 @@ function MeetingPage() {
         .forEach((track) => {
 
           peerConnection.addTrack(
-            track,
+            track.kind === "video" ? (screenStreamRef.current?.getVideoTracks()[0] || track) : track,
             localStream
           )
 
@@ -541,7 +615,7 @@ function MeetingPage() {
         setParticipants([...users])
         // Publish the current tracks, including when joining or reconnecting.
         socket.emit("mute-state", localStream.getAudioTracks().every(track => !track.enabled))
-        socket.emit("video-state", localStream.getVideoTracks().every(track => track.readyState === "ended" || !track.enabled))
+        socket.emit("video-state", !screenStreamRef.current && localStream.getVideoTracks().every(track => track.readyState === "ended" || !track.enabled))
 
 
         // The server also sends new-user
@@ -866,6 +940,12 @@ function MeetingPage() {
     return () => {
 
       cancelled = true
+      screenStreamRef.current?.getTracks().forEach((track) => {
+        track.onended = null
+        track.stop()
+      })
+      screenStreamRef.current = null
+      localStreamRef.current = null
 
 
       socket.disconnect()
@@ -964,7 +1044,7 @@ function MeetingPage() {
 
 
       <h2>
-        Your Camera
+        {isScreenSharing ? "Your Screen" : "Your Camera"}
       </h2>
 
 
@@ -981,7 +1061,7 @@ function MeetingPage() {
           background: "black"
         }}
       />
-      {(isVideoOff || !localVideoReady) && <img className="meeting-placeholder" src={placeholderImage} alt={isVideoOff ? "Your camera is off" : "Waiting for your camera"} />}
+      {(!isScreenSharing && isVideoOff || !localVideoReady) && <img className="meeting-placeholder" src={placeholderImage} alt={isVideoOff ? "Your camera is off" : "Waiting for your camera"} />}
       <MediaStatus muted={isMuted} videoOff={isVideoOff} />
       </section>
     <div className="meeting-controls">
@@ -1021,6 +1101,16 @@ function MeetingPage() {
     ? "Close Chat"
     : "Chat"}
 </button>
+
+  <button
+    type="button"
+    className="meeting-screen-share"
+    aria-pressed={isScreenSharing}
+    title={isScreenSharing ? "Stop sharing your screen" : "Share your screen"}
+    onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+  >
+    {isScreenSharing ? "Stop Sharing" : "Share Screen"}
+  </button>
 
   <button
     onClick={endCall}
