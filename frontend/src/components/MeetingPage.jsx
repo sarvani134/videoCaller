@@ -39,6 +39,7 @@ function MeetingPage() {
   const isHost = location.state?.isHost
 
   const [connected, setConnected] = useState(false)
+  const [chatSocket, setChatSocket] = useState(null)
   const [participants, setParticipants] = useState([])
   const [mediaError, setMediaError] = useState("")
   const [isMuted,setIsMuted]=useState(false)
@@ -128,8 +129,6 @@ function MeetingPage() {
     return () => clearTimeout(timer)
   }, [copyStatus])
   let [showChatWindow,setShowChatWindow]=useState(false)
-  const [messages,setMessages]=useState([])
-  const [message,setMessage]=useState("")
   const chatToggleRef = useRef(null)
   const closeChat = () => {
     setShowChatWindow(false)
@@ -257,18 +256,6 @@ function MeetingPage() {
 
     }
 
-    const sendMessage=(text)=>{
-        const trimmedText=text.trim()
-        if(trimmedText==""){
-          return
-        }
-        if(!socketRef.current?.connected){
-          return
-        }
-
-        socketRef.current.emit("chat-message",trimmedText,isHost?"Host":"Participant")
-        setMessage("")
-      }
   useEffect(() => {
 
     let localStream = null
@@ -500,6 +487,7 @@ function MeetingPage() {
         )
 
 
+        setChatSocket(socket)
         setConnected(true)
 
 
@@ -535,21 +523,6 @@ function MeetingPage() {
 
       }
     )
-
-        socket.on("chat-message",(data,sender,senderSocketId)=>{
-           const newMessage = {
-      data,
-      sender,
-      socketId: senderSocketId,
-      isOwn: senderSocketId === socket.id
-    }
-
-    setMessages((prev) => [
-      ...prev,
-      newMessage
-    ])
-  
-        })
 
 
     // -----------------------------------------
@@ -1122,10 +1095,8 @@ function MeetingPage() {
 
       {showChatWindow && (
         <ChatWindow
-          messages={messages}
-          message={message}
-          onMessageChange={setMessage}
-          onSend={sendMessage}
+          socket={chatSocket}
+          isHost={isHost}
           onClose={closeChat}
           connected={connected}
         />

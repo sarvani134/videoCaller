@@ -13,12 +13,18 @@ export const socketConnection=(server)=>{
             
         }
     })
+
         io.on("connection",(socket)=>{
+            // when the hosts create the room
             socket.on("create-room",(path)=>{
                 if(connections[path]!==undefined){
                        socket.emit("room-error", "Room already exists")
                     return 
                 }
+                // it will create something like 
+                // connestcions=[
+                //  {   path:["socketId"]  }
+                // ]
                 connections[path]=[]
                 connections[path].push(socket.id)
                  timeOnline[socket.id]=new Date()
@@ -26,12 +32,15 @@ export const socketConnection=(server)=>{
                 socket.emit("new-user", socket.id, connections[path])
 
             })
+            
 
             socket.on("join-call",(path)=>{
+                // participant does this 
                 if(connections[path]==undefined){
                   socket.emit("room-error","room doesnt found or meeting has ended")
                   return
                 }
+
                 connections[path].push(socket.id)
                 timeOnline[socket.id]=new Date()
 
@@ -68,12 +77,15 @@ export const socketConnection=(server)=>{
                     }
                 }
             })
-
+                // when the user clicks on the mute button now it stores the mute state 
             socket.on("mute-state", (muted) => {
                 if (typeof muted !== "boolean") return
                 const room = Object.values(connections).find(ids => ids.includes(socket.id))
                 if (!room) return
                 socket.data.muted = muted
+
+                    // this will send the mute state to the other participant , so that their front end
+                    // will be changed for this user based the chosen value
                 for (const participantId of room) {
                     if (participantId !== socket.id) {
                         io.to(participantId).emit("mute-state", socket.id, muted)

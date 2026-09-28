@@ -7,12 +7,33 @@ function Simple() {
     const remoteVideoRef=useRef(null)
     const localVideoRef=useRef(null)
     const peerConnectionRef=useRef(null)
+    const [messages,setMessages]=[]
+    const [message,setMessage]=useState("")
+    const inputRef=useRef(null)
+    const listRef=useRef(null)
+
+    useEffect(()=>{
+        if(inputRef){
+            inputRef.current.focus()
+        }
+
+    },[])
+
+    useEffect(()=>{
+            if(listRef.current){
+                listRef.current.scrollTop=listRef.current.scrollHeight
+            }
+    },[messages])
+
+    
+
     useEffect(()=>{
         let localStream=null
         let cancelled=null
          const socket=io("socked id",{
         autoConnect:false
          })
+
    
 
     const createPeerConnection=(remoteSocketId)=>{
@@ -152,17 +173,59 @@ const startStream=async()=>{
 
      },["",false])
     
-            const startScreenShare=async()=>{
+           const startScreenShare=async()=>{
+            try{
 
-                const shareStream=await localStreamRef.mediaDevices.getUserMedia({
+                const shareStream=await navigator.mediaDevices.getDisplayMedia({
                     video:true
                 })
 
-                const shareTrack=shareStream.getVideoTracks()[0]
+                const shareTrack=shareStream.getTracks()[0]
+                const videoSender=await peerConnectionRef.getSenders()
+                .find((sender)=>sender?.track.kind=="video")
 
-                const videoSender=localStreamRef
+                if(videoSender){
+                    videoSender.replaceTrack(shareTrack)
+                }
+                if(localVideoRef){
+                    localVideoRef.current.srcObject=shareStream
+                }
+
+               shareTrack.onended=()=>{
+                stopScreenShare()
+               }
+
 
             }
+            catch(err){
+                console.log(err)
+            }
+
+           }
+
+           const stopScreenShare=async()=>{
+            try{
+                    const videoStream=await navigator.mediaDevices.getDisplayMedia({
+                        video:true
+                    })
+                    const videoTrack=videoStream.getTracks()[0]
+
+                    const cameraSender=await peerConnectionRef.getSenders()
+                    .find((sender))
+
+                    if(cameraSender){
+                        cameraSender.replaceTrack(videoTrack)
+                    }
+                    if(localVideoRef){
+                        localVideoRef.current.srcObject=videoStream
+                    }
+
+
+            }
+            catch(err){
+                console.log(err)
+            }
+           }
 
 
    
