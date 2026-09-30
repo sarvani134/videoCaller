@@ -227,6 +227,30 @@ const startStream=async()=>{
             }
            }
 
+           socket.on("pin-message",(messageId)=>{
+            if(!messageId){
+                return
+            }
+                    const [matchingRoom,found]=Object.entries(connections)
+                    .reduce(([room,found],[roomKey,roomVal])=>{
+                        if(!found && roomVal.includes(socket.id)){
+                            return [roomKey,true]
+                        }
+                        return [room,found]
+
+                    },["",false])
+
+                    if(!found){
+                        return
+                    }
+
+                    const message=messages[matchingRoom]?.find((msg)=>msg.id===messageId)
+                    if(!message){
+                        return
+                    }
+
+           })
+
 
    
   return (

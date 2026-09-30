@@ -1,4 +1,5 @@
 import { User } from "../models/userModel.js"
+import apiResponse from "../utils/grokAi.js"
 
 export const saveUser = async (req, res) => {
   const auth0Id = req.auth?.payload?.sub
@@ -39,4 +40,26 @@ export const saveUser = async (req, res) => {
     }
     return res.status(500).json({ msg: "Unable to save your profile to the database. Please retry." })
   }
+}
+
+export const aiChat=async(req,res)=>{
+  try{
+    const {message}=req.body
+  if ( !message) {
+      return res.json({
+        err: "Incomplete data"
+      });
+    }
+      const assistantResponse =
+          await apiResponse(message,req.file);
+          console.log(assistantResponse)
+           return res.json({
+      assistantResponse
+    });
+    
+        }
+      
+catch(err){
+  console.log(err)
+}
 }

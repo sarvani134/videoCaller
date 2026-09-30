@@ -7,6 +7,7 @@ import {
 
 import { io } from "socket.io-client"
 import ChatWindow from "./ChatWindow"
+import AiAssistant from "./AiAssistant"
 
 function MediaStatus({ muted, videoOff }) {
   return (
@@ -40,6 +41,8 @@ function MeetingPage() {
 
   const [connected, setConnected] = useState(false)
   const [chatSocket, setChatSocket] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [pinnedMessages, setPinnedMessages] = useState([])
   const [participants, setParticipants] = useState([])
   const [mediaError, setMediaError] = useState("")
   const [isMuted,setIsMuted]=useState(false)
@@ -54,7 +57,21 @@ function MeetingPage() {
   const [isScreenSharing,setIsScreenSharing]=useState(false)
   const screenStreamRef=useRef(null)
   const screenSharePendingRef = useRef(false)
+  const [isAllowedToUseAi,setIsAllowedToUseAi]=useState(null)
+  const aiPermissionDialog = useRef(null)
 
+  const answerAiPermission = (allowed) => {
+    setIsAllowedToUseAi(allowed)
+    socketRef.current?.emit("set-ai-permission", allowed)
+    aiPermissionDialog.current?.close()
+  }
+    const [aiMessages,setAiMessages]=useState([
+              {
+                  role:"assistant",
+                  content:"Hi I am Millie. How can I help you"
+              },
+          ])
+            const [isAiOpen,setIsAiOpen]=useState(false)
   const stopScreenShare = async () => {
     const screenStream = screenStreamRef.current
     if (!screenStream) return
@@ -83,6 +100,24 @@ function MeetingPage() {
       console.error("Camera restore failed:", error)
     }
   }
+  const handleAiOpen = () => {
+  if (isHost) {
+    setIsAiOpen(true)
+    return
+  }
+
+  if (isAllowedToUseAi === true) {
+    setIsAiOpen(true)
+    return
+  }
+
+  if (isAllowedToUseAi === false) {
+    alert("The host has disabled AI assistant access for participants.")
+    return
+  }
+
+  alert("AI permission has not been set by the host yet.")
+}
 
   const startScreenShare = async () => {
     const localStream = localStreamRef.current
@@ -273,6 +308,116 @@ function MeetingPage() {
       }
     )
     socketRef.current=socket
+
+    // Keep chat history and listeners alive while the chat panel is closed.
+    setMessages([])
+    setPinnedMessages([])
+
+    const handleChatMessage = (
+      receivedMessage
+    ) => {
+
+      const newMessage = {
+
+        ...receivedMessage,
+
+        isOwn:
+          receivedMessage.socketId ===
+          socket.id
+
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        newMessage
+      ])
+
+    }
+
+
+    const handlePinnedMessage = (
+      pinnedMessage
+    ) => {
+
+      setPinnedMessages((prev) => {
+
+        // avoid duplicate pins
+        const alreadyPinned =
+          prev.some(
+            (msg) =>
+              msg.id === pinnedMessage.id
+          )
+
+        if (alreadyPinned) {
+          return prev
+        }
+
+        return [
+          ...prev,
+          pinnedMessage
+        ]
+
+      })
+
+    }
+
+
+    const handleUnpinnedMessage = (
+      messageId
+    ) => {
+
+      setPinnedMessages((prev) =>
+        prev.filter(
+          (msg) => msg.id !== messageId
+        )
+      )
+
+    }
+
+
+    // useful when a participant joins later
+    const handlePinnedMessages = (
+      pinned
+    ) => {
+
+      setPinnedMessages(
+        Array.isArray(pinned)
+          ? pinned
+          : []
+      )
+
+    }
+
+
+    socket.on(
+      "chat-message",
+      handleChatMessage
+    )
+
+    socket.on(
+      "message-pinned",
+      handlePinnedMessage
+    )
+
+    socket.on(
+      "message-unpinned",
+      handleUnpinnedMessage
+    )
+
+    socket.on(
+      "pinned-messages",
+      handlePinnedMessages
+    )
+        socket.on("ai-permission", (allowed) => {
+
+    setIsAllowedToUseAi(allowed)
+
+    if (!allowed) {
+        setIsAiOpen(false)
+    }
+   
+})
+
     socket.on("video-state", (participantId, videoOff) => {
       if (participantId !== socket.id) setRemoteVideoOff(videoOff)
     })
@@ -537,6 +682,7 @@ function MeetingPage() {
           "Room successfully created:",
           createdRoomId
         )
+        aiPermissionDialog.current?.showModal()
 
       }
     )
@@ -913,6 +1059,26 @@ function MeetingPage() {
     return () => {
 
       cancelled = true
+      socket.off(
+        "chat-message",
+        handleChatMessage
+      )
+
+      socket.off(
+        "message-pinned",
+        handlePinnedMessage
+      )
+
+      socket.off(
+        "message-unpinned",
+        handleUnpinnedMessage
+      )
+
+      socket.off(
+        "pinned-messages",
+        handlePinnedMessages
+      )
+
       screenStreamRef.current?.getTracks().forEach((track) => {
         track.onended = null
         track.stop()
@@ -1077,6 +1243,18 @@ function MeetingPage() {
 
   <button
     type="button"
+    className="meeting-millie"
+    aria-label="Chat with Millie, your AI assistant"
+    aria-expanded={isAiOpen}
+    title="Chat with Millie"
+    onClick={()=>handleAiOpen()}
+
+  >
+  AI Chat
+  </button>
+
+  <button
+    type="button"
     className="meeting-screen-share"
     aria-pressed={isScreenSharing}
     title={isScreenSharing ? "Stop sharing your screen" : "Share your screen"}
@@ -1093,15 +1271,32 @@ function MeetingPage() {
 
 </div>
 
+  {isAiOpen && <AiAssistant onClose={()=>setIsAiOpen(false)} messages={aiMessages} setMessages={setAiMessages} />}
+
       {showChatWindow && (
         <ChatWindow
           socket={chatSocket}
           isHost={isHost}
           onClose={closeChat}
           connected={connected}
+          messages={messages}
+          pinnedMessages={pinnedMessages}
         />
       )}
 
+
+      <dialog
+        ref={aiPermissionDialog}
+        className="ai-permission-dialog"
+        aria-labelledby="ai-permission-question"
+        onCancel={(event) => event.preventDefault()}
+      >
+        <h2 id="ai-permission-question">Allow participants to use AI chatbot?</h2>
+        <div>
+          <button type="button" onClick={() => answerAiPermission(true)}>Yes</button>
+          <button type="button" onClick={() => answerAiPermission(false)}>No</button>
+        </div>
+      </dialog>
 
       <h2 hidden={!hasOtherParticipant}>
         Other Participant

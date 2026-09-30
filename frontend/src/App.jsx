@@ -8,6 +8,7 @@ import useSaveUser from './hooks/useSaveUser'
 import './App.css'
 import { Route, Routes } from 'react-router-dom'
 import MeetingPage from './components/MeetingPage'
+import AiAssistant from './components/AiAssistant'
 
 function App() {
   const [showRegister, setShowRegister] = useState(false)
@@ -33,6 +34,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/meeting/:roomId" element={<MeetingPage />} />
+        <Route path='/aiAssistant' element={<AiAssistant/>} />
       </Routes>
     )}
   </>

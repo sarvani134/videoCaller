@@ -7,6 +7,7 @@ function Navbar() {
     <nav className="app-navbar" aria-label="Main navigation">
       {/* <a className="navbar-home" href="/" aria-current="page">Home</a> */}
       <NavLink className="navbar-home" to="/" end>Home</NavLink>
+      {/* <NavLink className="navbar-home" to="/aiAssistant" end> millie the Ai</NavLink> */}
       
       <Logout />
     </nav>

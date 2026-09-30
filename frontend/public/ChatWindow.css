@@ -275,12 +275,14 @@
   gap: 12px;
 }
 
-.chat-input-row input {
+.chat-input-row textarea {
   flex: 1;
 
   min-width: 0;
 
   height: 54px;
+  resize: none;
+  overflow-y: auto;
 
   padding: 14px;
 
@@ -295,7 +297,7 @@
   font-size: 15px;
 }
 
-.chat-input-row input::placeholder {
+.chat-input-row textarea::placeholder {
   color: #78879c;
 }
 
@@ -391,7 +393,230 @@
       max(16px, env(safe-area-inset-bottom));
   }
 
-  .chat-input-row input {
+  .chat-input-row textarea {
     font-size: 16px;
   }
+}
+/* ========================================
+   PINNED MESSAGE BAR
+======================================== */
+
+.chat-pinned-bar {
+  display: flex;
+  align-items: stretch;
+
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  margin: 0;
+  border-bottom: 1px solid #dedede;
+
+  background: white;
+}
+
+
+.chat-pinned-main {
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  min-width: 0;
+
+  padding: 10px 12px;
+
+  border: none;
+  background: transparent;
+
+  cursor: pointer;
+
+  text-align: left;
+}
+
+
+.chat-pinned-main:hover {
+  background: #f7f7f7;
+}
+
+
+.chat-pin-icon {
+  flex-shrink: 0;
+
+  font-size: 18px;
+}
+
+
+.chat-pinned-content {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+}
+
+
+.chat-pinned-content strong {
+  font-size: 12px;
+
+  margin-bottom: 2px;
+}
+
+
+.chat-pinned-text {
+  max-width: 230px;
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  font-size: 13px;
+  color: #555;
+}
+
+
+.chat-pinned-next {
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+  align-items: center;
+
+  min-width: 48px;
+
+  border: none;
+  border-left: 1px solid #ededed;
+
+  background: transparent;
+
+  cursor: pointer;
+
+  font-size: 11px;
+  color: #555;
+}
+
+
+.chat-pinned-next:hover {
+  background: #f5f5f5;
+}
+
+
+/* ========================================
+   MESSAGE HEADER
+======================================== */
+
+.chat-message-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+}
+
+
+/* ========================================
+   THREE DOT MENU
+======================================== */
+
+.chat-message-menu-wrapper {
+  position: relative;
+}
+
+
+.chat-message-menu-button {
+  border: none;
+  background: transparent;
+
+  padding: 2px 7px;
+
+  cursor: pointer;
+
+  font-size: 20px;
+  line-height: 1;
+
+  border-radius: 50%;
+}
+
+
+.chat-message-menu-button:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+
+.chat-message-menu {
+  position: absolute;
+
+  top: 28px;
+  right: 0;
+
+  min-width: 135px;
+
+  padding: 5px;
+
+  background: white;
+
+  border: 1px solid #ddd;
+  border-radius: 8px;
+
+  box-shadow:
+    0 4px 14px
+    rgba(0, 0, 0, 0.15);
+
+  z-index: 50;
+}
+
+
+.chat-message-menu button {
+  width: 100%;
+
+  border: none;
+
+  padding: 8px 10px;
+
+  background: transparent;
+
+  border-radius: 6px;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  font-size: 13px;
+}
+
+
+.chat-message-menu button:hover {
+  background: #f2f2f2;
+}
+
+
+/* ========================================
+   MESSAGE HIGHLIGHT
+======================================== */
+
+.chat-message {
+  transition:
+    background 0.3s ease,
+    transform 0.3s ease;
+}
+
+
+.chat-message-highlight {
+  background: rgba(
+    255,
+    217,
+    0,
+    0.18
+  );
+
+  transform: scale(1.01);
+}
+
+
+/* ========================================
+   BETTER SCROLL POSITION
+======================================== */
+
+.chat-message {
+  scroll-margin-top: 80px;
 }

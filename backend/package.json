@@ -23,6 +23,7 @@
     "fs": "^0.0.1-security",
     "http-status": "^2.1.0",
     "mongoose": "^9.7.4",
+    "multer": "^2.4.0",
     "nodemon": "^3.1.14",
     "path": "^0.12.7",
     "socket.io": "^4.8.3",

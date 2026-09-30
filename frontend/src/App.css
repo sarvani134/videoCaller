@@ -107,7 +107,7 @@
   background: linear-gradient(180deg, #f8fbff, #fff);
 }
 
-#root > .meeting > .meeting-controls button {
+#root > .meeting > .meeting-controls > button {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -128,7 +128,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-#root > .meeting > .meeting-controls button::before {
+#root > .meeting > .meeting-controls > button::before {
   content: "";
   z-index: 1;
   width: 24px;
@@ -152,7 +152,7 @@
   pointer-events: none;
 }
 
-#root > .meeting > .meeting-controls button::after {
+#root > .meeting > .meeting-controls > button::after {
   content: "";
   position: absolute;
   top: 8px;
@@ -165,36 +165,48 @@
   transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
-#root > .meeting > .meeting-controls button:first-child {
+#root > .meeting > .meeting-controls > button:first-child {
   --meeting-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'%3E%3Crect x='9' y='2' width='6' height='13' rx='3'/%3E%3Cpath d='M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8'/%3E%3C/svg%3E");
 }
-#root > .meeting > .meeting-controls button:nth-child(2) {
+#root > .meeting > .meeting-controls > button:nth-child(2) {
   --meeting-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Crect x='2' y='6' width='13' height='12' rx='3'/%3E%3Cpath d='m15 10 7-4v12l-7-4z'/%3E%3C/svg%3E");
 }
-#root > .meeting > .meeting-controls button:last-child {
+#root > .meeting > .meeting-controls > button:last-child {
   --meeting-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M2 12c5-6 15-6 20 0v5l-6-1v-4a12 12 0 0 0-8 0v4l-6 1z'/%3E%3C/svg%3E");
   border-color: #c92c43;
   background: #c92c43;
   color: #fff;
 }
 
-#root > .meeting > .meeting-controls button:last-child {
+#root > .meeting > .meeting-controls > button:last-child {
   background: transparent;
   color: #58677e;
 }
 
-#root > .meeting > .meeting-controls button:last-child::after {
+#root > .meeting > .meeting-controls > button:last-child::after {
   background: linear-gradient(145deg, #ff4054, #e71e36);
   box-shadow: 0 4px 12px #ef30452b, inset 0 1px 1px #ffffff40;
 }
 
-#root > .meeting > .meeting-controls button:hover::after {
+#root > .meeting > .meeting-controls > button:hover::after {
   transform: translateY(-2px);
   box-shadow: 0 7px 16px #23334d30;
 }
 
-#root > .meeting > .meeting-controls button:active::after {
+#root > .meeting > .meeting-controls > button:active::after {
   transform: scale(0.95);
+}
+
+#root > .meeting > .meeting-controls .meeting-millie {
+  --meeting-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 4h8a4 4 0 0 1 4 4v7a4 4 0 0 1-4 4h-4l-5 3v-3a4 4 0 0 1-3-4V8a4 4 0 0 1 4-4ZM12 4V2M1 11h3m16 0h3'/%3E%3Crect x='7' y='8' width='10' height='7' rx='3.5'/%3E%3Ccircle cx='10' cy='11.5' r='.8' fill='black' stroke='none'/%3E%3Ccircle cx='14' cy='11.5' r='.8' fill='black' stroke='none'/%3E%3C/svg%3E");
+}
+
+#root > .meeting > .meeting-controls .meeting-millie[aria-expanded="true"] {
+  color: #1765da;
+}
+
+#root > .meeting > .meeting-controls .meeting-millie[aria-expanded="true"]::after {
+  background: linear-gradient(145deg, #3985f5, #1765da);
 }
 
 #root > .meeting > .meeting-controls .meeting-screen-share {
@@ -210,7 +222,7 @@
   box-shadow: 0 4px 12px #12805c30;
 }
 
-#root > .meeting > .meeting-controls button:focus-visible {
+#root > .meeting > .meeting-controls > button:focus-visible {
   outline: 3px solid #82afff;
   outline-offset: 2px;
 }
@@ -250,7 +262,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #root > .meeting > .meeting-controls button::after { transition: none; }
+  #root > .meeting > .meeting-controls > button::after { transition: none; }
 }
 #root > .meeting > .meeting-video {
   position: relative;
@@ -966,4 +978,54 @@
 
 @media (prefers-reduced-motion: reduce) {
   .dashboard > main button { transition: none; }
+}
+
+.ai-permission-dialog {
+  width: min(400px, calc(100vw - 40px));
+  box-sizing: border-box;
+  padding: 28px;
+  border: 1px solid #dce6f3;
+  border-radius: 16px;
+  background: #fff;
+  color: #233955;
+  box-shadow: 0 20px 60px #17355f30;
+}
+
+.ai-permission-dialog::backdrop {
+  background: #14253b66;
+}
+
+.ai-permission-dialog h2 {
+  margin: 0 0 24px;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.ai-permission-dialog > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.ai-permission-dialog button {
+  min-width: 80px;
+  padding: 10px 20px;
+  border: 1px solid #dce6f3;
+  border-radius: 8px;
+  background: #f3f6fb;
+  color: #233955;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ai-permission-dialog button:first-child {
+  border-color: #1765da;
+  background: #1765da;
+  color: #fff;
+}
+
+.ai-permission-dialog button:focus-visible {
+  outline: 3px solid #91baff;
+  outline-offset: 3px;
 }

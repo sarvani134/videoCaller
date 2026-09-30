@@ -5,77 +5,79 @@ function ChatWindow({
   socket,
   isHost,
   onClose,
-  connected
+  connected,
+  messages,
+  pinnedMessages
 }) {
 
-  const [messages, setMessages] = useState([])
   const [message, setMessage] = useState("")
+
+  // which message's ... menu is currently open
+  const [openMenuId, setOpenMenuId] = useState(null)
+
+  // which pinned message is currently displayed
+  const [currentPinnedIndex, setCurrentPinnedIndex] =
+    useState(0)
+
+  // used temporarily to highlight a message
+  const [highlightedMessageId, setHighlightedMessageId] =
+    useState(null)
 
   const listRef = useRef(null)
   const inputRef = useRef(null)
 
 
-  // focuses on input when the chat is opened 
+  // ------------------------------------
+  // FOCUS INPUT
+  // ------------------------------------
+
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
 
 
-  // when the new message is sent scroll to the newest 
+  // ------------------------------------
+  // SCROLL TO NEWEST MESSAGE
+  // ------------------------------------
 
   useEffect(() => {
+
     if (listRef.current) {
+
       listRef.current.scrollTop =
         listRef.current.scrollHeight
+
     }
+
   }, [messages])
 
 
   // ------------------------------------
-  // RECEIVE CHAT MESSAGES
+  // KEEP PIN INDEX VALID
   // ------------------------------------
 
   useEffect(() => {
 
-    if (!socket) {
+    if (pinnedMessages.length === 0) {
+
+      setCurrentPinnedIndex(0)
       return
+
     }
 
-    const handleChatMessage = (
-      data,
-      sender,
-      senderSocketId
-    ) => {
+    if (
+      currentPinnedIndex >=
+      pinnedMessages.length
+    ) {
 
-      const newMessage = {
-        id: crypto.randomUUID(),
-        data,
-        sender,
-        socketId: senderSocketId,
-        isOwn: senderSocketId === socket.id
-      }
+      setCurrentPinnedIndex(0)
 
-      setMessages((prev) => [
-        ...prev,
-        newMessage
-      ])
     }
 
-
-    socket.on(
-      "chat-message",
-      handleChatMessage
-    )
-
-
-    return () => {
-      socket.off(
-        "chat-message",
-        handleChatMessage
-      )
-    }
-
-  }, [socket])
+  }, [
+    pinnedMessages,
+    currentPinnedIndex
+  ])
 
 
   // ------------------------------------
@@ -104,32 +106,183 @@ function ChatWindow({
     )
 
     setMessage("")
+
   }
 
 
+  // ------------------------------------
+  // CHECK IF MESSAGE IS PINNED
+  // ------------------------------------
+
+  const isMessagePinned = (
+    messageId
+  ) => {
+
+    return pinnedMessages.some(
+      (msg) =>
+        msg.id === messageId
+    )
+
+  }
+
+
+  // ------------------------------------
+  // PIN / UNPIN MESSAGE
+  // ------------------------------------
+
+  const togglePin = (msg) => {
+
+    if (!socket?.connected) {
+      return
+    }
+
+    const pinned =
+      isMessagePinned(msg.id)
+
+
+    if (pinned) {
+
+      socket.emit(
+        "unpin-message",
+        msg.id
+      )
+
+    }
+
+    else {
+
+      if (pinnedMessages.length >= 5) {
+
+        alert(
+          "You can pin only 5 messages."
+        )
+
+        return
+      }
+
+      socket.emit(
+        "pin-message",
+        msg.id
+      )
+
+    }
+
+    setOpenMenuId(null)
+
+  }
+
+
+  // ------------------------------------
+  // GO TO ORIGINAL MESSAGE
+  // ------------------------------------
+
+  const scrollToMessage = (
+    messageId
+  ) => {
+
+    const element =
+      document.getElementById(
+        `message-${messageId}`
+      )
+
+    if (!element) {
+      return
+    }
+
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    })
+
+    setHighlightedMessageId(
+      messageId
+    )
+
+    setTimeout(() => {
+
+      setHighlightedMessageId(
+        null
+      )
+
+    }, 1500)
+
+  }
+
+
+  // ------------------------------------
+  // NEXT PINNED MESSAGE
+  // ------------------------------------
+
+  const showNextPinnedMessage = () => {
+
+    if (
+      pinnedMessages.length <= 1
+    ) {
+      return
+    }
+
+    setCurrentPinnedIndex(
+      (prev) =>
+        (prev + 1) %
+        pinnedMessages.length
+    )
+
+  }
+
+
+  const currentPinnedMessage =
+    pinnedMessages[
+      currentPinnedIndex
+    ]
+
+
   return (
+
     <aside
       className="chat-window"
       id="meeting-chat"
       aria-labelledby="chat-title"
+
       onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          onClose()
+
+        if (
+          event.key === "Escape"
+        ) {
+
+          if (openMenuId) {
+
+            setOpenMenuId(null)
+
+          }
+
+          else {
+
+            onClose()
+
+          }
+
         }
+
       }}
     >
+
+      {/* -------------------------------- */}
+      {/* HEADER */}
+      {/* -------------------------------- */}
 
       <header className="chat-header">
 
         <div>
+
           <h2 id="chat-title">
             Meeting chat
           </h2>
 
           <p>
-            Messages are visible to everyone
-            in this meeting
+            Messages are visible to
+            everyone in this meeting
           </p>
+
         </div>
 
 
@@ -147,10 +300,88 @@ function ChatWindow({
 
 
       <div className="chat-legend">
+
         <span>Host</span>
-        <span>Participant</span>
+
+        <span>
+          Participant
+        </span>
+
       </div>
 
+
+      {/* -------------------------------- */}
+      {/* PINNED MESSAGE BAR */}
+      {/* -------------------------------- */}
+
+      {currentPinnedMessage && (
+
+        <div className="chat-pinned-bar">
+
+          <button
+            type="button"
+            className="chat-pinned-main"
+
+            onClick={() =>
+              scrollToMessage(
+                currentPinnedMessage.id
+              )
+            }
+          >
+
+            <span className="chat-pin-icon">
+              📌
+            </span>
+
+
+            <span className="chat-pinned-content">
+
+              <strong>
+                {currentPinnedMessage.sender}
+              </strong>
+
+              <span className="chat-pinned-text">
+
+                {
+                  currentPinnedMessage.data
+                }
+
+              </span>
+
+            </span>
+
+          </button>
+
+
+          <button
+            type="button"
+            className="chat-pinned-next"
+            onClick={
+              showNextPinnedMessage
+            }
+            title="Show next pinned message"
+          >
+
+            <span>
+              {currentPinnedIndex + 1}
+              /
+              {pinnedMessages.length}
+            </span>
+
+            <span>
+              ↓
+            </span>
+
+          </button>
+
+        </div>
+
+      )}
+
+
+      {/* -------------------------------- */}
+      {/* CHAT MESSAGES */}
+      {/* -------------------------------- */}
 
       <div
         className="chat-messages"
@@ -170,57 +401,160 @@ function ChatWindow({
             </strong>
 
             <p>
-              Say hello or share a thought
-              with everyone.
+              Say hello or share a
+              thought with everyone.
             </p>
 
           </div>
 
         ) : (
 
-          messages.map((msg) => (
+          messages.map((msg) => {
 
-            <div
-              key={msg.id}
-              className={`chat-message ${
-                msg.sender === "Host"
-                  ? "chat-host"
-                  : "chat-participant"
-              } ${
-                msg.isOwn
-                  ? "chat-own"
-                  : ""
-              }`}
-            >
+            const pinned =
+              isMessagePinned(
+                msg.id
+              )
 
-              <span className="chat-sender">
+            return (
 
-                {msg.sender === "Host"
-                  ? "Host"
-                  : "Participant"}
+              <div
+                key={msg.id}
 
-                {msg.isOwn
-                  ? " · You"
-                  : ""}
+                id={`message-${msg.id}`}
 
-              </span>
+                className={`
+                  chat-message
+                  ${
+                    msg.sender === "Host"
+                      ? "chat-host"
+                      : "chat-participant"
+                  }
+                  ${
+                    msg.isOwn
+                      ? "chat-own"
+                      : ""
+                  }
+                  ${
+                    highlightedMessageId
+                      === msg.id
+                      ? "chat-message-highlight"
+                      : ""
+                  }
+                `}
+              >
+
+                {/* MESSAGE HEADER */}
+
+                <div className="chat-message-header">
+
+                  <span className="chat-sender">
+
+                    {
+                      msg.sender === "Host"
+                        ? "Host"
+                        : "Participant"
+                    }
+
+                    {
+                      msg.isOwn
+                        ? " · You"
+                        : ""
+                    }
+
+                    {
+                      pinned
+                        ? " · 📌"
+                        : ""
+                    }
+
+                  </span>
 
 
-              <p className="chat-bubble">
-                {msg.data}
-              </p>
+                  {/* THREE DOT MENU */}
 
-            </div>
+                  <div className="chat-message-menu-wrapper">
 
-          ))
+                    <button
+                      type="button"
+                      className="chat-message-menu-button"
+
+                      onClick={() => {
+
+                        setOpenMenuId(
+                          (prev) =>
+                            prev === msg.id
+                              ? null
+                              : msg.id
+                        )
+
+                      }}
+
+                      aria-label="Message options"
+                      title="Message options"
+                    >
+
+                      ⋯
+
+                    </button>
+
+
+                    {
+                      openMenuId ===
+                      msg.id
+                      && (
+
+                      <div className="chat-message-menu">
+
+                        <button
+                          type="button"
+
+                          onClick={() =>
+                            togglePin(msg)
+                          }
+                        >
+
+                          {
+                            pinned
+                              ? "Unpin message"
+                              : "Pin message"
+                          }
+
+                        </button>
+
+                      </div>
+
+                    )}
+
+                  </div>
+
+                </div>
+
+
+                {/* MESSAGE */}
+
+                <p className="chat-bubble">
+                  {msg.data}
+                </p>
+
+              </div>
+
+            )
+
+          })
 
         )}
 
       </div>
 
 
+      {/* -------------------------------- */}
+      {/* MESSAGE INPUT */}
+      {/* -------------------------------- */}
+
       <form
         className="chat-composer"
+
         onSubmit={(event) => {
 
           event.preventDefault()
@@ -232,26 +566,37 @@ function ChatWindow({
 
         <div className="chat-input-row">
 
-          <input
-            ref={inputRef}
-            aria-label="Message"
-            placeholder="Write a message…"
-            value={message}
-            onChange={(event) =>
-              setMessage(
-                event.target.value
-              )
-            }
-          />
+       <textarea
+  ref={inputRef}
+  aria-label="Message"
+  placeholder="Write a message…"
+  value={message}
+
+  onChange={(event) =>
+    setMessage(event.target.value)
+  }
+
+  onKeyDown={(event) => {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+      event.preventDefault()
+      sendMessage()
+    }
+  }}
+/>
 
 
           <button
             type="submit"
             className="chat-send"
+
             disabled={
               !connected ||
               !message.trim()
             }
+
             aria-label="Send message"
             title="Send message"
           >
@@ -261,7 +606,11 @@ function ChatWindow({
               viewBox="0 0 24 24"
               aria-hidden="true"
             >
-              <path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13" />
+
+              <path
+                d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"
+              />
+
             </svg>
 
           </button>
@@ -270,15 +619,21 @@ function ChatWindow({
 
 
         <p>
-          {connected
-            ? "Press Enter to send"
-            : "Waiting for connection…"}
+
+          {
+            connected
+              ? "Press Enter to send"
+              : "Waiting for connection…"
+          }
+
         </p>
 
       </form>
 
     </aside>
+
   )
+
 }
 
 export default ChatWindow

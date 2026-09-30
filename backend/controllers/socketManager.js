@@ -3,6 +3,8 @@ import { Server } from "socket.io";
 let connections={}
 const messages={}
 const timeOnline={}
+const pinnedMessages={}
+const aiPermissions={}
 export const socketConnection=(server)=>{
     // acts like a event listner whenever the user creates a socket this runs
     const io=new Server(server,{
@@ -28,11 +30,125 @@ export const socketConnection=(server)=>{
                 connections[path]=[]
                 connections[path].push(socket.id)
                  timeOnline[socket.id]=new Date()
+                 aiPermissions[path]=null
+                 socket.data.roomId=path
                 socket.emit("room-created", path)
                 socket.emit("new-user", socket.id, connections[path])
 
             })
-            
+                    socket.on("set-ai-permission",(allowed)=>{
+                        const roomId=socket.data.roomId
+                        if(!roomId){
+                            return
+                        }
+                        aiPermissions[roomId]=allowed
+                     // we are sending to the user does the host gave them
+                            // permission to use the ai chat or not 
+    for (const participantId of connections[roomId]) {
+
+        io.to(participantId).emit(
+            "ai-permission",
+            allowed
+        )
+    }
+
+                    })
+
+                // pinning a message
+            socket.on("pin-message", (messageId) => {
+
+    const [matchingRoom, found] =
+        Object.entries(connections)
+            .reduce(
+                ([room, found], [roomKey, roomVal]) => {
+                    if (!found && roomVal.includes(socket.id)) {
+                        return [roomKey, true]
+                    }
+
+                    return [room, found]
+                },
+                ["", false]
+            )
+
+    if (!found) {
+        return
+    }
+
+    const message =
+        messages[matchingRoom]?.find(
+            (msg) => msg.id === messageId
+        )
+
+    if (!message) {
+        return
+    }
+
+    if (!pinnedMessages[matchingRoom]) {
+        pinnedMessages[matchingRoom] = []
+    }
+
+    const alreadyPinned =
+        pinnedMessages[matchingRoom]
+            .some((msg) => msg.id === messageId)
+
+    if (alreadyPinned) {
+        return
+    }
+
+    pinnedMessages[matchingRoom].push(message)
+
+    connections[matchingRoom].forEach(
+        (participantId) => {
+            io.to(participantId).emit(
+                "message-pinned",
+                message
+            )
+        }
+    )
+})
+
+// unpin the message 
+socket.on("unpin-message", (messageId) => {
+
+    const [matchingRoom, found] =
+        Object.entries(connections)
+            .reduce(
+                ([room, found], [roomKey, roomVal]) => {
+
+                    if (!found && roomVal.includes(socket.id)) {
+                        return [roomKey, true]
+                    }
+
+                    return [room, found]
+                },
+                ["", false]
+            )
+
+    if (!found) {
+        return
+    }
+
+    if (!pinnedMessages[matchingRoom]) {
+        return
+    }
+
+    pinnedMessages[matchingRoom] =
+        pinnedMessages[matchingRoom]
+            .filter(
+                (msg) => msg.id !== messageId
+            )
+
+    connections[matchingRoom].forEach(
+        (participantId) => {
+
+            io.to(participantId).emit(
+                "message-unpinned",
+                messageId
+            )
+
+        }
+    )
+})
 
             socket.on("join-call",(path)=>{
                 // participant does this 
@@ -42,6 +158,14 @@ export const socketConnection=(server)=>{
                 }
 
                 connections[path].push(socket.id)
+                socket.data.roomId=path
+                // there is a chance that user wont be joined when the 
+                // host have sent a message regarding the permission of the 
+                // ai chat window
+                 socket.emit(
+                "ai-permission",
+                 aiPermissions[path] ?? false
+                            )
                 timeOnline[socket.id]=new Date()
 
                 for (const participantId of connections[path]) {
@@ -98,34 +222,51 @@ export const socketConnection=(server)=>{
 
             })
 
-            socket.on("chat-message",(data,sender)=>{
+            socket.on("chat-message", (data, sender) => {
 
-                const [matchingRoom,found]=Object.entries(connections)
-                .reduce(([room,found],[roomKey,roomVal])=>{
-                    if(!found && roomVal.includes(socket.id)){
-                        return [roomKey,true]
+    const [matchingRoom, found] =
+        Object.entries(connections)
+            .reduce(
+                ([room, found], [roomKey, roomVal]) => {
+
+                    if (!found && roomVal.includes(socket.id)) {
+                        return [roomKey, true]
                     }
 
+                    return [room, found]
 
-                    return [room,found]
-                },['',false])
+                },
+                ["", false]
+            )
 
-                if(found){
-                    if(messages[matchingRoom]==undefined){
-                        messages[matchingRoom]=[]
-                    }
+    if (!found) {
+        return
+    }
 
-                    messages[matchingRoom].push({'sender':sender,'data':data,'socket-id-sender':socket.id})
-                    connections[matchingRoom].forEach(element => {
-                    io.to(element).emit("chat-message",data,sender,socket.id)
-                    
-                });
-                }
+    if (!messages[matchingRoom]) {
+        messages[matchingRoom] = []
+    }
 
-                
+    const newMessage = {
+        id: crypto.randomUUID(),
+        sender,
+        data,
+        socketId: socket.id
+    }
 
-                
-            })
+    messages[matchingRoom].push(newMessage)
+
+    connections[matchingRoom].forEach(
+        (participantId) => {
+
+            io.to(participantId).emit(
+                "chat-message",
+                newMessage
+            )
+
+        }
+    )
+})
 
 
             socket.on("disconnect",()=>{
